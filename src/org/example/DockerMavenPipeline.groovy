@@ -10,7 +10,6 @@ class DockerMavenPipeline implements Serializable {
 
     def runPipeline(String imageName, String credentialsId) {
         steps.pipeline {
-            agent any
             environment {
                 IMAGE_NAME = imageName
             }
