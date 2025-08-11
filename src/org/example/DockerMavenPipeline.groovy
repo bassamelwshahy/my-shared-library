@@ -9,51 +9,33 @@ class DockerMavenPipeline implements Serializable {
     }
 
     def runPipeline(String imageName, String credentialsId) {
-        steps.pipeline {
-            environment {
-                IMAGE_NAME = imageName
+        steps.node {
+            steps.env.IMAGE_NAME = imageName
+
+            steps.stage('Checkout') {
+                steps.checkout steps.scm
             }
-            options {
-                steps.buildDiscarder(steps.logRotator(numToKeepStr: '10'))
-                steps.timestamps()
+
+            steps.stage('Maven Build (in Docker)') {
+                steps.sh "docker run --rm -v ${steps.env.WORKSPACE}:/workspace -w /workspace maven:3.9.5-eclipse-temurin-17 mvn -B clean package"
+                steps.archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
-            stages {
-                stage('Checkout') {
-                    steps {
-                        steps.checkout steps.scm
-                    }
-                }
-                stage('Maven Build (in Docker)') {
-                    steps {
-                        steps.sh 'docker run --rm -v $WORKSPACE:/workspace -w /workspace maven:3.9.5-eclipse-temurin-17 mvn -B clean package'
-                    }
-                    post {
-                        always {
-                            steps.archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-                        }
-                    }
-                }
-                stage('Docker Build') {
-                    steps {
-                        steps.script {
-                            def tag = "${steps.env.BUILD_NUMBER}"
-                            steps.sh "docker build -t ${imageName}:${tag} -t ${imageName}:latest ."
-                        }
-                    }
-                    post {
-                        always {
-                            steps.sh 'docker image prune -f || true'
-                        }
-                    }
-                }
-                stage('Docker Push') {
-                    steps {
-                        steps.withCredentials([steps.usernamePassword(credentialsId: credentialsId, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            steps.sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                            steps.sh "docker push ${imageName}:${steps.env.BUILD_NUMBER}"
-                            steps.sh "docker push ${imageName}:latest"
-                        }
-                    }
+
+            steps.stage('Docker Build') {
+                def tag = "${steps.env.BUILD_NUMBER}"
+                steps.sh "docker build -t ${imageName}:${tag} -t ${imageName}:latest ."
+                steps.sh 'docker image prune -f || true'
+            }
+
+            steps.stage('Docker Push') {
+                steps.withCredentials([steps.usernamePassword(
+                        credentialsId: credentialsId,
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    steps.sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                    steps.sh "docker push ${imageName}:${steps.env.BUILD_NUMBER}"
+                    steps.sh "docker push ${imageName}:latest"
                 }
             }
         }
