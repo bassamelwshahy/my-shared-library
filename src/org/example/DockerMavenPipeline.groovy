@@ -54,11 +54,7 @@ class DockerMavenPipeline implements Serializable {
 
             steps.stage('Update Deployment YAML in GitHub') {
                     def tag = "${steps.env.BUILD_NUMBER}"
-                steps.withCredentials([steps.usernamePassword(
-                    credentialsId: githubId,
-                    usernameVariable: 'GIT_USER',
-                    passwordVariable: 'GIT_PASS'
-                )]) {
+                 {
                     steps.sh """
                         rm -rf argocd-nginx-demo
                         git clone https://${usernameVariable}:${usernamePassword}@github.com/bassamelwshahy/argocd-nginx-demo.git
