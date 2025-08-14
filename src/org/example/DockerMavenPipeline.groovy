@@ -60,6 +60,7 @@ class DockerMavenPipeline implements Serializable {
                     passwordVariable: 'GIT_PASS'
                 )]) {
                     steps.sh """
+                        rm -rf argocd-nginx-demo
                         git clone https://github.com/bassamelwshahy/argocd-nginx-demo.git
                         cd argocd-nginx-demo
                         sed -i "s|image: .*|image: ${imageName}:${tag}|" deployment.yml
