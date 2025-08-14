@@ -8,7 +8,7 @@ class DockerMavenPipeline implements Serializable {
         this.steps = steps
     }
 
-    def runPipeline(String imageName, String credentialsId) {
+    def runPipeline(String imageName, String credentialsId, String github-cred) {
         steps.node {
             steps.env.IMAGE_NAME = imageName
 
