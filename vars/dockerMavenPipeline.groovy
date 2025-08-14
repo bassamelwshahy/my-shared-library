@@ -5,4 +5,4 @@ def call(Map config = [:]) {
         config.credentialsId ?: "dockerhub-creds",
         config.githubId ?: "github-cred"
     )
-}
+} 
