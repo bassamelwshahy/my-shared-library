@@ -44,12 +44,12 @@ class DockerMavenPipeline implements Serializable {
         credentialsId: gitCredsId,
         usernameVariable: 'GITHUB_USER',
         passwordVariable: 'GITHUB_TOKEN'
-    )]) {
-        steps.stage('Update Manifests & Push to Git') {
-    steps.withCredentials([steps.usernamePassword(
-        credentialsId: gitCredsId,
-        usernameVariable: 'GITHUB_USER',
-        passwordVariable: 'GITHUB_TOKEN'
+
+
+
+
+
+
     )]) {
         steps.sh """
             rm -rf gitops-repo
