@@ -4,22 +4,24 @@ class DockerMavenPipeline implements Serializable {
 
     def steps
 
-    // Hardcoded Jenkins credentials IDs (safe to hardcode IDs, NOT passwords)
-    def dockerCredId = "docker-hub-cred"
-    def githubId = "github-cred"
+    // Jenkins credentials IDs
+    def dockerCredId = "dockerhub-creds" // Docker Hub credentials ID in Jenkins
+    def githubId     = "github-cred"     // GitHub credentials ID in Jenkins
 
     DockerMavenPipeline(steps) {
         this.steps = steps
     }
 
-   def runPipeline(String imageName, String dockerCredId, String githubId) {
+    def runPipeline(String imageName, String dockerCredId, String githubId) {
         steps.node {
             steps.env.IMAGE_NAME = imageName
 
+            // Stage 1: Checkout Code
             steps.stage('Checkout') {
                 steps.checkout steps.scm
             }
 
+            // Stage 2: Maven Build in Docker
             steps.stage('Maven Build (in Docker)') {
                 steps.sh """
                     docker run --rm \
@@ -31,6 +33,7 @@ class DockerMavenPipeline implements Serializable {
                 steps.archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
 
+            // Stage 3: Docker Build
             steps.stage('Docker Build') {
                 def tag = "${steps.env.BUILD_NUMBER}"
                 steps.sh """
@@ -40,6 +43,7 @@ class DockerMavenPipeline implements Serializable {
                 steps.sh 'docker image prune -f || true'
             }
 
+            // Stage 4: Docker Push
             steps.stage('Docker Push') {
                 steps.withCredentials([steps.usernamePassword(
                     credentialsId: dockerCredId,
@@ -52,22 +56,26 @@ class DockerMavenPipeline implements Serializable {
                 }
             }
 
-            stage('Update Deployment YAML in GitHub') {
-                    def tag = "${env.BUILD_NUMBER}"
-                 
-                    sh """
+            // Stage 5: Update Deployment YAML in GitHub
+            steps.stage('Update Deployment YAML in GitHub') {
+                def tag = "${steps.env.BUILD_NUMBER}"
+                steps.withCredentials([steps.usernamePassword(
+                    credentialsId: githubId,
+                    usernameVariable: 'GITHUB_CREDS_USR',
+                    passwordVariable: 'GITHUB_CREDS_PSW'
+                )]) {
+                    steps.sh """
                         rm -rf argocd-nginx-demo
-                        git clone https://github.com/bassamelwshahy/argocd-nginx-demo.git
+                        git clone https://${GITHUB_CREDS_USR}:${GITHUB_CREDS_PSW}@github.com/bassamelwshahy/argocd-nginx-demo.git
                         cd argocd-nginx-demo
                         sed -i "s|image: .*|image: ${imageName}:${tag}|" deployment.yml
-                      git config user.email "jenkins@example.com"
-            git config user.name "Jenkins CI"
-            git remote set-url origin https://${script.env.GITHUB_CREDS_USR}:${script.env.GITHUB_CREDS_PSW}@github.com/bassamelwshahy/argocd-nginx-demo.git
-            git add .
-            git commit -m "Update image to ${imageName}:${tag} " 
-            git push origin HEAD:master
+                        git config user.email "jenkins@example.com"
+                        git config user.name "Jenkins CI"
+                        git add .
+                        git commit -m "Update image to ${imageName}:${tag}" || echo "No changes to commit"
+                        git push origin HEAD:master
                     """
-                
+                }
             }
         }
     }
