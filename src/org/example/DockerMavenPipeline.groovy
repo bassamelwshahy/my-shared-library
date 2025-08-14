@@ -4,11 +4,15 @@ class DockerMavenPipeline implements Serializable {
 
     def steps
 
+    // Hardcoded Jenkins credentials IDs (safe to hardcode IDs, NOT passwords)
+    def dockerCredId = "docker-hub-cred"
+    def githubId = "github-cred"
+
     DockerMavenPipeline(steps) {
         this.steps = steps
     }
 
-    def runPipeline(String imageName, String dockerCredId, String githubId) {
+    def runPipeline(String imageName) {
         steps.node {
             steps.env.IMAGE_NAME = imageName
 
@@ -49,26 +53,20 @@ class DockerMavenPipeline implements Serializable {
             }
 
             steps.stage('Update Deployment YAML in GitHub') {
-                def tag = "${steps.env.BUILD_NUMBER}"
-                def manifestRepo = "https://github.com/bassamelwshahy/argocd-nginx-demo.git"
-                def deploymentFile = "deployment.yaml" // adjust path as needed
-
-                steps.dir('manifest-repo') {
-                    steps.withCredentials([steps.usernamePassword(
-                        credentialsId: githubId,
-                        usernameVariable: 'GIT_USER',
-                        passwordVariable: 'GIT_PASS'
-                    )]) {
-                        steps.sh """
-                            git config --global user.email "jenkins@ci.com"
-                            git config --global user.name "Jenkins CI"
-                            git clone https://$GIT_USER:$GIT_PASS@${manifestRepo.replace('https://', '')} .
-                            sed -i 's|image: .*|image: bassamelwshahy/${imageName}:${tag}|' ${deploymentFile}
-                            git add ${deploymentFile}
-                            git commit -m "Update image to ${imageName}:${tag}"
-                            git push origin main
-                        """
-                    }
+                steps.withCredentials([steps.usernamePassword(
+                    credentialsId: githubId,
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_PASS'
+                )]) {
+                    steps.sh """
+                        git clone https://github.com/bassamelwshahy/argocd-nginx-demo.git
+                        cd argocd-nginx-demo
+                        sed -i 's|image: .*$|image: bassamelwshahy/${imageName}:${steps.env.BUILD_NUMBER}|' deployment.yaml
+                        git config user.email "ci@example.com"
+                        git config user.name "Jenkins CI"
+                        git commit -am "Update image to bassamelwshahy/${imageName}:${steps.env.BUILD_NUMBER}"
+                        git push
+                    """
                 }
             }
         }
