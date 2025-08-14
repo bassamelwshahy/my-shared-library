@@ -45,6 +45,12 @@ class DockerMavenPipeline implements Serializable {
         usernameVariable: 'GITHUB_USER',
         passwordVariable: 'GITHUB_TOKEN'
     )]) {
+        steps.stage('Update Manifests & Push to Git') {
+    steps.withCredentials([steps.usernamePassword(
+        credentialsId: gitCredsId,
+        usernameVariable: 'GITHUB_USER',
+        passwordVariable: 'GITHUB_TOKEN'
+    )]) {
         steps.sh """
             rm -rf gitops-repo
             git clone https://${steps.env.GITHUB_USER}:${steps.env.GITHUB_TOKEN}@github.com/bassamelwshahy/argocd-nginx-demo.git gitops-repo
