@@ -17,10 +17,14 @@ class DockerMavenPipeline implements Serializable {
             }
 
             steps.stage('Maven Build (in Docker)') {
-                steps.sh "docker run --rm -v ${steps.env.WORKSPACE}:/workspace -w /workspace maven:3.9.5-eclipse-temurin-17 mvn -B clean package"
+                steps.sh """
+                    docker run --rm \
+                        -v ${steps.env.WORKSPACE}:/workspace \
+                        -w /workspace \
+                        maven:3.9.5-eclipse-temurin-17 \
+                        mvn -B clean package
+                """
                 steps.archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
 
             steps.stage('Docker Build') {
-                def tag = "${steps.env.BUILD_NUMBER}"
-                steps.sh "docker build -t bassamelwshahy/${imageName}:${tag} -t bassamelwshahy/${imageName}:latest
