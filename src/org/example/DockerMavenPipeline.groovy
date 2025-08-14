@@ -62,7 +62,7 @@ class DockerMavenPipeline implements Serializable {
                     steps.sh """
                         git clone https://github.com/bassamelwshahy/argocd-nginx-demo.git
                         cd argocd-nginx-demo
-                        sed -i "s|image: .*|image: ${imageName}:${tag}|"
+                        sed -i "s|image: .*|image: ${imageName}:${tag}|" deployment.yml
                         git config user.email "ci@example.com"
                         git config user.name "Jenkins CI"
                         git commit -am "Update image to bassamelwshahy/${imageName}:${steps.env.BUILD_NUMBER}"
