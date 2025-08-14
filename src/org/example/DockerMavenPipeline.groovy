@@ -23,7 +23,7 @@ class DockerMavenPipeline implements Serializable {
 
             steps.stage('Docker Build') {
                 def tag = "${steps.env.BUILD_NUMBER}"
-                steps.sh "docker build -t ${imageName}:${tag} -t ${imageName}:latest ."
+                steps.sh "docker build -t bassamelwshahy/${imageName}:${tag} -t bassamelwshahy/${imageName}:latest ."
                 steps.sh 'docker image prune -f || true'
             }
 
@@ -34,10 +34,7 @@ class DockerMavenPipeline implements Serializable {
                         passwordVariable: 'DOCKER_PASS'
                 )]) {
                     steps.sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
-                    steps.sh "docker push ${imageName}:${steps.env.BUILD_NUMBER}"
-                    steps.sh "docker push ${imageName}:latest"
+                    steps.sh "docker push bassamelwshahy/${imageName}:${steps.env.BUILD_NUMBER}"
+                    steps.sh "docker push bassamelwshahy/${imageName}:latest"
                 }
             }
-        }
-    }
-}
