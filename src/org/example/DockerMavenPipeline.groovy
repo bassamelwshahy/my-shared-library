@@ -52,7 +52,7 @@ class DockerMavenPipeline implements Serializable {
                         git config --global user.name "Jenkins CI"
                         git add deployment.yaml
                         git commit -m "Update image tag to ${steps.env.BUILD_NUMBER}" || echo "No changes to commit"
-                        git push https://${steps.env.GITHUB_USER}:${steps.env.GITHUB_TOKEN}@${gitRepoUrl} HEAD:main
+                        git push https://${steps.env.GITHUB_USER}:${steps.env.GITHUB_TOKEN}@github.com/bassamelwshahy/argocd-nginx-demo.git HEAD:main
                     """
                 }
             }
