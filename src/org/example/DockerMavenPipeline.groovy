@@ -50,8 +50,8 @@ class DockerMavenPipeline implements Serializable {
 
             steps.stage('Update Deployment YAML in GitHub') {
                 def tag = "${steps.env.BUILD_NUMBER}"
-                def manifestRepo = "https://github.com/YOUR_GITHUB_USERNAME/YOUR_MANIFEST_REPO.git"
-                def deploymentFile = "k8s/deployment.yaml" // adjust path as needed
+                def manifestRepo = "https://github.com/bassamelwshahy/argocd-nginx-demo.git"
+                def deploymentFile = "deployment.yaml" // adjust path as needed
 
                 steps.dir('manifest-repo') {
                     steps.withCredentials([steps.usernamePassword(
