@@ -39,23 +39,26 @@ class DockerMavenPipeline implements Serializable {
                 }
             }
 
-            steps.stage('Update Manifests & Push to Git') {
-                steps.withCredentials([steps.usernamePassword(
-                    credentialsId: gitCredsId,
-                    usernameVariable: 'GITHUB_USER',
-                    passwordVariable: 'GITHUB_TOKEN'
-                )]) {
-                    steps.sh """
-                        git checkout -B main
-                        sed -i "s|image: .*|image: bassamelwshahy/my-app:${steps.env.BUILD_NUMBER}|" deployment.yaml
-                        git config --global user.email "${gitEmail}"
-                        git config --global user.name "Jenkins CI"
-                        git add deployment.yaml
-                        git commit -m "Update image tag to ${steps.env.BUILD_NUMBER}" || echo "No changes to commit"
-                        git push https://${steps.env.GITHUB_USER}:${steps.env.GITHUB_TOKEN}@github.com/bassamelwshahy/argocd-nginx-demo.git HEAD:main
-                    """
-                }
-            }
+           steps.stage('Update Manifests & Push to Git') {
+    steps.withCredentials([steps.usernamePassword(
+        credentialsId: gitCredsId,
+        usernameVariable: 'GITHUB_USER',
+        passwordVariable: 'GITHUB_TOKEN'
+    )]) {
+        steps.sh """
+            rm -rf gitops-repo
+            git clone https://${steps.env.GITHUB_USER}:${steps.env.GITHUB_TOKEN}@github.com/bassamelwshahy/argocd-nginx-demo.git gitops-repo
+            cd gitops-repo
+            git checkout -B main
+            sed -i "s|image: .*|image: bassamelwshahy/my-app:${steps.env.BUILD_NUMBER}|" deployment.yml
+            git config --global user.email "${gitEmail}"
+            git config --global user.name "Jenkins CI"
+            git add deployment.yml
+            git commit -m "Update image tag to ${steps.env.BUILD_NUMBER}" || echo "No changes to commit"
+            git push https://${steps.env.GITHUB_USER}:${steps.env.GITHUB_TOKEN}@github.com/bassamelwshahy/argocd-nginx-demo.git HEAD:main
+        """
+    }
+}
         }
     }
 }
