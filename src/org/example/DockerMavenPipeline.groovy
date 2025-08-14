@@ -52,22 +52,22 @@ class DockerMavenPipeline implements Serializable {
                 }
             }
 
-            steps.stage('Update Deployment YAML in GitHub') {
-                    def tag = "${steps.env.BUILD_NUMBER}"
-                 {
-                    steps.sh """
+            stage('Update Deployment YAML in GitHub') {
+                    def tag = "${env.BUILD_NUMBER}"
+                 
+                    sh """
                         rm -rf argocd-nginx-demo
-                        git clone https://${usernameVariable}:${usernamePassword}@github.com/bassamelwshahy/argocd-nginx-demo.git
+                        git clone https://github.com/bassamelwshahy/argocd-nginx-demo.git
                         cd argocd-nginx-demo
                         sed -i "s|image: .*|image: ${imageName}:${tag}|" deployment.yml
                       git config user.email "jenkins@example.com"
             git config user.name "Jenkins CI"
-            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/bassamelwshahy/argocd-nginx-demo.git
+            git remote set-url origin https://${script.env.GITHUB_CREDS_USR}:${script.env.GITHUB_CREDS_PSW}@github.com/bassamelwshahy/argocd-nginx-demo.git
             git add .
             git commit -m "Update image to ${imageName}:${tag} " 
             git push origin HEAD:master
                     """
-                }
+                
             }
         }
     }
