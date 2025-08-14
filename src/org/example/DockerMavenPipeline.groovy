@@ -57,26 +57,26 @@ class DockerMavenPipeline implements Serializable {
             }
 
             // Stage 5: Update Deployment YAML in GitHub
-            steps.stage('Update Deployment YAML in GitHub') {
-                def tag = "${steps.env.BUILD_NUMBER}"
-                steps.withCredentials([steps.usernamePassword(
-                    credentialsId: githubId,
-                    usernameVariable: 'GITHUB_CREDS_USR',
-                    passwordVariable: 'GITHUB_CREDS_PSW'
-                )]) {
-                    steps.sh """
-                        rm -rf argocd-nginx-demo
-                        git clone https://${GITHUB_CREDS_USR}:${GITHUB_CREDS_PSW}@github.com/bassamelwshahy/argocd-nginx-demo.git
-                        cd argocd-nginx-demo
-                        sed -i "s|image: .*|image: ${imageName}:${tag}|" deployment.yml
-                        git config user.email "jenkins@example.com"
-                        git config user.name "Jenkins CI"
-                        git add .
-                        git commit -m "Update image to ${imageName}:${tag}" || echo "No changes to commit"
-                        git push origin HEAD:master
-                    """
-                }
-            }
+           stage('Update Deployment YAML in GitHub') {
+    def tag = "${env.BUILD_NUMBER}"
+    
+    withCredentials([usernamePassword(credentialsId: 'github-cred', // replace with your Jenkins credentials ID
+                                      usernameVariable: 'GITHUB_CREDS_USR', 
+                                      passwordVariable: 'GITHUB_CREDS_PSW')]) {
+        sh """
+            rm -rf argocd-nginx-demo
+            git clone https://${GITHUB_CREDS_USR}:${GITHUB_CREDS_PSW}@github.com/bassamelwshahy/argocd-nginx-demo.git
+            cd argocd-nginx-demo
+            sed -i "s|image: .*|image: ${imageName}:${tag}|" deployment.yml
+            
+            git config user.email "jenkins@example.com"
+            git config user.name "Jenkins CI"
+            git add .
+            git commit -m "Update image to ${imageName}:${tag}"
+            git push origin HEAD:master
+        """
+    }
+}
         }
     }
 }
