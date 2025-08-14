@@ -1,52 +1,47 @@
 package org.example
 
 class DockerMavenPipeline implements Serializable {
+
     def steps
 
     DockerMavenPipeline(steps) {
         this.steps = steps
     }
 
-    def runPipeline(String imageName, String credentialsId, String githubId) {
-        steps.pipeline {
-            agent {
-                docker {
-                    image 'maven:3.9.5-eclipse-temurin-17'
-                    args '-v /root/.m2:/root/.m2'
-                }
+    def runPipeline(String imageName, String credentialsId) {
+        steps.node('any') { // FIX: specify 'any' to avoid MissingPropertyException
+            steps.env.IMAGE_NAME = imageName
+
+            steps.stage('Checkout') {
+                steps.checkout steps.scm
             }
-            environment {
-                GITHUB_CREDS = steps.credentials(githubId)
+
+            steps.stage('Maven Build (in Docker)') {
+                steps.sh """
+                    docker run --rm \
+                        -v ${steps.env.WORKSPACE}:/workspace \
+                        -w /workspace \
+                        maven:3.9.5-eclipse-temurin-17 \
+                        mvn -B clean package
+                """
+                steps.archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
-            stages {
-                stage('Checkout') {
-                    steps {
-                        checkout([$class: 'GitSCM',
-                                  branches: [[name: "*/main"]],
-                                  userRemoteConfigs: [[
-                                      url: "https://github.com/bassamelwshahy/java.git",
-                                      credentialsId: githubId
-                                  ]]
-                        ])
-                    }
-                }
-                stage('Build') {
-                    steps {
-                        sh 'mvn -B clean package'
-                    }
-                }
-                stage('Docker Build & Push') {
-                    steps {
-                        withCredentials([steps.usernamePassword(credentialsId: credentialsId,
-                                                                usernameVariable: 'DOCKER_USER',
-                                                                passwordVariable: 'DOCKER_PASS')]) {
-                            sh """
-                                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                                docker build -t ${imageName}:latest .
-                                docker push ${imageName}:latest
-                            """
-                        }
-                    }
+
+            steps.stage('Docker Build') {
+                def tag = "${steps.env.BUILD_NUMBER}"
+                steps.sh "docker build -t ${imageName}:${tag} -t ${imageName}:latest ."
+                steps.sh 'docker image prune -f || true'
+            }
+
+            steps.stage('Docker Push') {
+                steps.withCredentials([steps.usernamePassword(
+                        credentialsId: credentialsId,
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    steps.sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                    steps.sh "docker push ${imageName}:${steps.env.BUILD_NUMBER}"
+                    steps.sh "docker push ${imageName}:latest"
                 }
             }
         }
