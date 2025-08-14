@@ -8,7 +8,7 @@ class DockerMavenPipeline implements Serializable {
         this.steps = steps
     }
 
-    def runPipeline(String imageName, String credentialsId) {
+    def runPipeline(String imageName, String dockerCredsId, String gitCredsId, String gitEmail, String gitRepoUrl) {
         steps.node {
             steps.env.IMAGE_NAME = imageName
 
@@ -29,13 +29,30 @@ class DockerMavenPipeline implements Serializable {
 
             steps.stage('Docker Push') {
                 steps.withCredentials([steps.usernamePassword(
-                        credentialsId: credentialsId,
+                        credentialsId: dockerCredsId,
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                 )]) {
                     steps.sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                     steps.sh "docker push bassamelwshahy/${imageName}:${steps.env.BUILD_NUMBER}"
                     steps.sh "docker push bassamelwshahy/${imageName}:latest"
+                }
+            }
+
+            steps.stage('Update Manifests & Push to Git') {
+                steps.withCredentials([steps.usernamePassword(
+                    credentialsId: gitCredsId,
+                    usernameVariable: 'GITHUB_USER',
+                    passwordVariable: 'GITHUB_TOKEN'
+                )]) {
+                    steps.sh """
+                        sed -i "s|image: .*|image: bassamelwshahy/my-app:${BUILD_NUMBER}|" deployment.yaml
+                        git config --global user.email "${gitEmail}"
+                        git config --global user.name "Jenkins CI"
+                        git add deployment.yaml
+                        git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
+                        git push https://${GITHUB_USER}:${GITHUB_TOKEN}@${gitRepoUrl} HEAD:main
+                    """
                 }
             }
         }
