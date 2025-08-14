@@ -38,3 +38,6 @@ class DockerMavenPipeline implements Serializable {
                     steps.sh "docker push bassamelwshahy/${imageName}:latest"
                 }
             }
+        }
+    }
+}
