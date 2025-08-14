@@ -53,6 +53,7 @@ class DockerMavenPipeline implements Serializable {
             }
 
             steps.stage('Update Deployment YAML in GitHub') {
+                    def tag = "${steps.env.BUILD_NUMBER}"
                 steps.withCredentials([steps.usernamePassword(
                     credentialsId: githubId,
                     usernameVariable: 'GIT_USER',
